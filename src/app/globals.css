@@ -1,26 +1,138 @@
 @import "tailwindcss";
+@import "@uploadthing/react/styles.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-primary: #FFB300;
+  --color-primary-dark: #7C4D00;
+  --color-primary-deep: #4E3B00;
+  --color-primary-pale: #FFF3E0;
+  --color-accent: #FF6F00;
+  --background: #FFFDF7;
+  --foreground: #1A0F00;
+  --card: #FFFFFF;
+  --card-foreground: #1A0F00;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A0F00;
+  --primary: #FFB300;
+  --primary-foreground: #4E3B00;
+  --secondary: #FFF3E0;
+  --secondary-foreground: #7C4D00;
+  --muted: #F5F0E8;
+  --muted-foreground: #8B7355;
+  --accent: #FF6F00;
+  --accent-foreground: #FFFFFF;
+  --destructive: #C62828;
+  --border: #E8D5B0;
+  --input: #F5ECD7;
+  --ring: #FFB300;
+  --radius: 0.75rem;
+  --shadow-gold: 0 4px 24px rgba(255, 179, 0, 0.25);
+  --gradient-gold: linear-gradient(135deg, #FFB300 0%, #FF6F00 100%);
+  --gradient-dark: linear-gradient(135deg, #4E3B00 0%, #7C4D00 100%);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #0D0800;
+  --foreground: #FFF3E0;
+  --card: #1A1000;
+  --card-foreground: #FFF3E0;
+  --popover: #1A1000;
+  --popover-foreground: #FFF3E0;
+  --primary: #FFB300;
+  --primary-foreground: #1A0F00;
+  --secondary: #2A1F00;
+  --secondary-foreground: #FFD54F;
+  --muted: #1F1500;
+  --muted-foreground: #B08050;
+  --accent: #FF8F00;
+  --accent-foreground: #0D0800;
+  --destructive: #EF5350;
+  --border: #3D2A00;
+  --input: #2A1F00;
+  --ring: #FFB300;
+  --shadow-gold: 0 4px 32px rgba(255, 179, 0, 0.15);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
+  min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--muted); }
+::-webkit-scrollbar-thumb { background: var(--color-primary-dark); border-radius: 3px; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--muted) 25%, var(--secondary) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes bid-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 179, 0, 0.4); }
+  50% { box-shadow: 0 0 0 16px rgba(255, 179, 0, 0); }
+}
+
+.bid-live { animation: bid-pulse 2s infinite; }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.marquee-inner { animation: marquee 20s linear infinite; }
+
+@keyframes flip-in {
+  from { transform: rotateX(-90deg); opacity: 0; }
+  to { transform: rotateX(0); opacity: 1; }
+}
+
+.flip-number {
+  animation: flip-in 0.3s ease-out;
+  transform-style: preserve-3d;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }

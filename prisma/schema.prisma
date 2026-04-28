@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  username      String?  @unique
+  role          UserRole @default(MANAGER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions    Session[]
+  accounts    Account[]
+  managedTeam Team?     @relation("TeamManager")
+  bids        Bid[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verifications")
+}
+
+enum UserRole {
+  ADMIN
+  AUCTIONEER
+  MANAGER
+  VIEWER
+}
+
+enum SkillType {
+  BATTING
+  BOWLING
+  ALL_ROUNDER
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum PlayerStatus {
+  AVAILABLE
+  ON_AUCTION
+  SOLD
+  UNSOLD
+}
+
+enum AuctionStatus {
+  UPCOMING
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  OUTBID
+}
+
+model Player {
+  id           String       @id @default(cuid())
+  name         String
+  photoUrl     String?
+  photoKey     String?
+  skillType    SkillType
+  battingLevel SkillLevel?
+  bowlingLevel SkillLevel?
+  basePrice    Int
+  jerseyNumber Int?
+  college      String?
+  year         Int?
+  bio          String?      @db.Text
+  stats        Json?
+  status       PlayerStatus @default(AVAILABLE)
+  soldPrice    Int?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  teamId       String?
+
+  team         Team?         @relation(fields: [teamId], references: [id])
+  bids         Bid[]
+  auctionItems AuctionItem[]
+
+  @@map("players")
+}
+
+model Team {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  shortName  String   @unique
+  logoUrl    String?
+  logoKey    String?
+  color      String
+  budget     Int
+  budgetUsed Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  managerId  String?  @unique
+
+  manager User?    @relation("TeamManager", fields: [managerId], references: [id])
+  players Player[]
+  bids    Bid[]
+
+  @@map("teams")
+}
+
+model AuctionSession {
+  id          String        @id @default(cuid())
+  name        String        @default("NPL Auction 2025")
+  status      AuctionStatus @default(UPCOMING)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  items AuctionItem[]
+
+  @@map("auction_sessions")
+}
+
+model AuctionItem {
+  id            String    @id @default(cuid())
+  sessionId     String
+  playerId      String
+  currentBid    Int?
+  currentTeamId String?
+  startedAt     DateTime?
+  endedAt       DateTime?
+  isActive      Boolean   @default(false)
+  order         Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  session AuctionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  player  Player         @relation(fields: [playerId], references: [id])
+  bids    Bid[]
+
+  @@unique([sessionId, playerId])
+  @@map("auction_items")
+}
+
+model Bid {
+  id            String    @id @default(cuid())
+  amount        Int
+  status        BidStatus @default(PENDING)
+  note          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  userId        String
+  teamId        String
+  playerId      String
+  auctionItemId String
+
+  user        User        @relation(fields: [userId], references: [id])
+  team        Team        @relation(fields: [teamId], references: [id])
+  player      Player      @relation(fields: [playerId], references: [id])
+  auctionItem AuctionItem @relation(fields: [auctionItemId], references: [id], onDelete: Cascade)
+
+  @@map("bids")
+}
+
+model MediaUpload {
+  id         String   @id @default(cuid())
+  url        String
+  key        String   @unique
+  fileName   String
+  fileSize   Int
+  mimeType   String
+  uploadedBy String
+  entityType String
+  entityId   String?
+  createdAt  DateTime @default(now())
+
+  @@map("media_uploads")
+}
