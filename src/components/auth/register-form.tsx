@@ -16,13 +16,14 @@ export function RegisterForm({ role = "MANAGER" }: { role?: string }) {
       return;
     }
     try {
+      const selectedRole = String(formData.get("role") ?? "MANAGER");
       const payload = {
         name: String(formData.get("name") ?? ""),
         email: String(formData.get("email") ?? ""),
         password,
         username: String(formData.get("username") ?? ""),
+        role: selectedRole,
         callbackURL: "/dashboard",
-        role: String(formData.get("role") ?? "MANAGER"),
       };
       await signUp.email(payload as never);
       toast.success("Account created. You can sign in now.");

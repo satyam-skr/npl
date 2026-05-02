@@ -52,8 +52,8 @@ export function LoginForm() {
         </div>
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email or username</Label>
-            <Input id="email" name="email" type="text" placeholder="manager@npl.dev" defaultValue={email} required />
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" placeholder="manager@npl.dev" defaultValue={email} required />
           </div>
           {mode === "password" ? (
             <div className="space-y-2">

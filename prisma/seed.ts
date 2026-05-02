@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { hashPassword } from "@better-auth/utils/password";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -41,13 +42,77 @@ const PLAYERS = [
 
 async function main() {
   console.log("Seeding NPL database...");
+  
+  // Delete in correct order (respecting foreign keys)
   await prisma.bid.deleteMany();
   await prisma.auctionItem.deleteMany();
   await prisma.auctionSession.deleteMany();
   await prisma.player.deleteMany();
+  await prisma.verification.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.user.deleteMany();
   await prisma.team.deleteMany();
 
-  for (const team of TEAMS) await prisma.team.create({ data: team });
+  // Create mock users
+  const mockUsers = [
+    { name: "Admin User", email: "admin@npl.dev", username: "admin", role: "ADMIN", password: "Admin@123456" },
+    { name: "Auctioneer User", email: "auctioneer@npl.dev", username: "auctioneer", role: "AUCTIONEER", password: "Auctioneer@123456" },
+    { name: "Manager One", email: "manager1@npl.dev", username: "manager1", role: "MANAGER", password: "Manager@123456" },
+    { name: "Manager Two", email: "manager2@npl.dev", username: "manager2", role: "MANAGER", password: "Manager@123456" },
+    { name: "Kabir Sethi", email: "kabir@npl.dev", username: "kabir", role: "MANAGER", password: "Kabir@123456" },
+    { name: "Meera Kulkarni", email: "meera@npl.dev", username: "meera", role: "MANAGER", password: "Meera@123456" },
+    { name: "Viewer User", email: "viewer@npl.dev", username: "viewer", role: "VIEWER", password: "Viewer@123456" },
+  ];
+
+  console.log("\n📝 Creating mock users...");
+  const users: Record<string, any> = {};
+  for (const userData of mockUsers) {
+    const hashedPassword = await hashPassword(userData.password);
+    
+    const user = await prisma.user.create({
+      data: {
+        name: userData.name,
+        email: userData.email,
+        username: userData.username,
+        displayUsername: userData.username,
+        role: userData.role as any,
+        emailVerified: true,
+        banned: false,
+      },
+    });
+
+    // Create account with password
+    await prisma.account.create({
+      data: {
+        userId: user.id,
+        accountId: user.id,
+        providerId: "credential",
+        password: hashedPassword,
+      },
+    });
+
+    users[userData.username] = user;
+    console.log(`  ✓ Created: ${userData.email} (${userData.role})`);
+  }
+
+  // Create teams and assign managers
+  console.log("\n🏆 Creating teams...");
+  const teamsWithManagers = [
+    { ...TEAMS[0], managerId: users.manager1.id },
+    { ...TEAMS[1], managerId: users.manager2.id },
+    { ...TEAMS[2], managerId: users.kabir.id },
+    { ...TEAMS[3], managerId: users.meera.id },
+  ];
+  for (const team of teamsWithManagers) await prisma.team.create({ data: team as any });
+  console.log(`  ✓ Created ${TEAMS.length} teams`);
+  console.log(`  ✓ Assigned manager1 → ${TEAMS[0].name}`);
+  console.log(`  ✓ Assigned manager2 → ${TEAMS[1].name}`);
+  console.log(`  ✓ Assigned kabir → ${TEAMS[2].name}`);
+  console.log(`  ✓ Assigned meera → ${TEAMS[3].name}`);
+
+  // Create players
+  console.log("\n🏏 Creating players...");
   for (const player of PLAYERS) {
     await prisma.player.create({
       data: {
@@ -59,13 +124,36 @@ async function main() {
       },
     });
   }
+  console.log(`  ✓ Created ${PLAYERS.length} players`);
 
+  // Create auction session
+  console.log("\n🎯 Creating auction session...");
   const session = await prisma.auctionSession.create({ data: { name: "NPL Auction 2025", status: "UPCOMING" } });
   const players = await prisma.player.findMany({ orderBy: { basePrice: "desc" } });
   for (let i = 0; i < players.length; i++) {
     await prisma.auctionItem.create({ data: { sessionId: session.id, playerId: players[i].id, order: i + 1 } });
   }
-  console.log("Seeding complete.");
+  console.log(`  ✓ Created auction session with ${players.length} items`);
+
+  console.log("\n✅ Seeding complete!");
+  console.log("\n📋 Test Credentials & Team Assignments:");
+  console.log("═".repeat(75));
+  mockUsers.forEach(user => {
+    console.log(`\nEmail:    ${user.email}`);
+    console.log(`Username: ${user.username}`);
+    console.log(`Password: ${user.password}`);
+    console.log(`Role:     ${user.role}`);
+    if (user.username === "manager1") {
+      console.log(`Team:     ${TEAMS[0].name} (${TEAMS[0].shortName}) - ASSIGNED ✅`);
+    } else if (user.username === "manager2") {
+      console.log(`Team:     ${TEAMS[1].name} (${TEAMS[1].shortName}) - ASSIGNED ✅`);
+    } else if (user.username === "kabir") {
+      console.log(`Team:     ${TEAMS[2].name} (${TEAMS[2].shortName}) - ASSIGNED ✅`);
+    } else if (user.username === "meera") {
+      console.log(`Team:     ${TEAMS[3].name} (${TEAMS[3].shortName}) - ASSIGNED ✅`);
+    }
+  });
+  console.log("\n" + "═".repeat(75));
 }
 
 main().catch((error) => {
